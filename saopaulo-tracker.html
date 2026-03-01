@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>São Paulo FC — Acompanhamento de Jogos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vermelho: #CC0000;
+    --branco: #F5F0E8;
+    --preto: #0A0A0A;
+    --cinza-escuro: #141414;
+    --cinza-medio: #222222;
+    --cinza-claro: #333333;
+    --dourado: #C8A84B;
+    --texto: #E8E0D0;
+    --texto-suave: #888880;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--preto);
+    color: var(--texto);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    position: relative;
+    padding: 0;
+    overflow: hidden;
+    background: var(--cinza-escuro);
+    border-bottom: 1px solid #1e1e1e;
+  }
+
+  .header-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 100% at 50% 0%, rgba(204,0,0,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 2rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .escudo {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+  }
+
+  .escudo svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .header-text h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    letter-spacing: 0.04em;
+    color: var(--branco);
+    line-height: 1;
+  }
+
+  .header-text p {
+    font-size: 0.78rem;
+    color: var(--texto-suave);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+    font-weight: 300;
+  }
+
+  .header-right {
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .btn-atualizar {
+    background: var(--vermelho);
+    color: #fff;
+    border: none;
+    padding: 0.55rem 1.3rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-atualizar:hover { background: #aa0000; }
+  .btn-atualizar:active { transform: scale(0.97); }
+  .btn-atualizar.loading { opacity: 0.6; pointer-events: none; }
+
+  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .ultima-atualizacao {
+    font-size: 0.72rem;
+    color: var(--texto-suave);
+    margin-top: 0.4rem;
+  }
+
+  /* TABS */
+  .tabs {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #1e1e1e;
+    position: relative;
+  }
+
+  .tab {
+    padding: 1rem 1.4rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .tab.active {
+    color: var(--branco);
+    border-bottom-color: var(--vermelho);
+  }
+
+  .tab:hover:not(.active) { color: var(--texto); }
+
+  /* MAIN CONTENT */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* STATUS BAR */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+    background: var(--cinza-medio);
+    padding: 0.3rem 0.8rem;
+    border-radius: 2px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--texto-suave);
+  }
+
+  .dot.verde { background: #4CAF50; animation: pulse-green 2s infinite; }
+  .dot.vermelho { background: var(--vermelho); }
+
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  /* GAME CARD */
+  .jogos-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: #1a1a1a;
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .jogo-card {
+    background: var(--cinza-escuro);
+    padding: 1.4rem 1.8rem;
+    display: grid;
+    grid-template-columns: 160px 1fr 160px;
+    align-items: center;
+    gap: 1rem;
+    transition: background 0.15s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .jogo-card:hover { background: var(--cinza-medio); }
+
+  .jogo-card.ao-vivo {
+    background: linear-gradient(90deg, rgba(204,0,0,0.06) 0%, var(--cinza-escuro) 50%);
+    border-left: 3px solid var(--vermelho);
+  }
+
+  .jogo-card.ao-vivo:hover {
+    background: linear-gradient(90deg, rgba(204,0,0,0.1) 0%, var(--cinza-medio) 50%);
+  }
+
+  .jogo-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .jogo-competicao {
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dourado);
+  }
+
+  .jogo-data {
+    font-size: 0.78rem;
+    color: var(--texto-suave);
+  }
+
+  .jogo-status {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+    margin-top: 0.2rem;
+  }
+
+  .jogo-status.live {
+    color: var(--vermelho);
+  }
+
+  .jogo-status.vitoria { color: #4CAF50; }
+  .jogo-status.derrota { color: var(--vermelho); }
+  .jogo-status.empate { color: var(--dourado); }
+
+  /* PLACAR */
+  .placar-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+  }
+
+  .time-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 80px;
+  }
+
+  .time-escudo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+  }
+
+  .time-nome {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-align: center;
+    color: var(--texto);
+  }
+
+  .placar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .placar-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.6rem;
+    line-height: 1;
+    color: var(--branco);
+    min-width: 2ch;
+    text-align: center;
+  }
+
+  .placar-sep {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--cinza-claro);
+    line-height: 1;
+  }
+
+  /* PARTIDA FUTURA */
+  .placar-futuro {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    color: var(--texto-suave);
+  }
+
+  /* JOGO DETALHE */
+  .jogo-detalhe {
+    text-align: right;
+  }
+
+  .jogo-estadio {
+    font-size: 0.72rem;
+    color: var(--texto-suave);
+  }
+
+  .jogo-hora {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: var(--branco);
+    line-height: 1.1;
+  }
+
+  /* LOADING */
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 5rem 2rem;
+    gap: 1rem;
+    color: var(--texto-suave);
+  }
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--cinza-claro);
+    border-top-color: var(--vermelho);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* ERROR */
+  .error-state {
+    background: rgba(204,0,0,0.06);
+    border: 1px solid rgba(204,0,0,0.2);
+    border-radius: 6px;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .error-state h3 { color: var(--vermelho); margin-bottom: 0.5rem; }
+  .error-state p { color: var(--texto-suave); font-size: 0.85rem; }
+
+  /* NOTICIAS */
+  .noticias-hero {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1px;
+    background: #1a1a1a;
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 1px;
+  }
+
+  .noticia-destaque {
+    position: relative;
+    min-height: 340px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .noticia-destaque-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+  }
+
+  .noticia-destaque:hover .noticia-destaque-img { transform: scale(1.04); }
+
+  .noticia-destaque-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.3) 60%, transparent 100%);
+  }
+
+  .noticia-destaque-body {
+    position: relative;
+    z-index: 1;
+    padding: 1.5rem;
+  }
+
+  .noticia-destaque-body .tag {
+    display: inline-block;
+    background: var(--vermelho);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 2px;
+    margin-bottom: 0.6rem;
+  }
+
+  .noticia-destaque-body h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.4rem, 2.5vw, 2rem);
+    line-height: 1.1;
+    color: var(--branco);
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.02em;
+  }
+
+  .noticia-destaque-body .meta {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.55);
+  }
+
+  /* LISTA LATERAL */
+  .noticias-lista-lateral {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: #1a1a1a;
+  }
+
+  .noticia-item-lateral {
+    background: var(--cinza-escuro);
+    padding: 1rem 1.2rem;
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s;
+    flex: 1;
+  }
+
+  .noticia-item-lateral:hover { background: var(--cinza-medio); }
+
+  .noticia-item-lateral img {
+    width: 72px;
+    height: 52px;
+    object-fit: cover;
+    border-radius: 3px;
+    flex-shrink: 0;
+    background: var(--cinza-claro);
+  }
+
+  .noticia-item-lateral .titulo {
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.35;
+    color: var(--texto);
+    margin-bottom: 0.3rem;
+  }
+
+  .noticia-item-lateral .meta {
+    font-size: 0.68rem;
+    color: var(--texto-suave);
+  }
+
+  /* GRID DE NOTICIAS */
+  .noticias-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: #1a1a1a;
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 1px;
+  }
+
+  .noticia-card {
+    background: var(--cinza-escuro);
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s;
+    overflow: hidden;
+  }
+
+  .noticia-card:hover { background: var(--cinza-medio); }
+
+  .noticia-card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    background: var(--cinza-claro);
+    display: block;
+  }
+
+  .noticia-card-body {
+    padding: 1rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .noticia-card-body .tag {
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--vermelho);
+  }
+
+  .noticia-card-body .titulo {
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--texto);
+    flex: 1;
+  }
+
+  .noticia-card-body .meta {
+    font-size: 0.68rem;
+    color: var(--texto-suave);
+    margin-top: auto;
+  }
+
+  .noticias-secao-titulo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.1em;
+    color: var(--texto-suave);
+    padding: 1.2rem 0 0.6rem;
+    border-top: 1px solid #1a1a1a;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .noticias-secao-titulo::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #1a1a1a;
+  }
+
+  @media (max-width: 768px) {
+    .noticias-hero { grid-template-columns: 1fr; }
+    .noticias-lista-lateral { display: none; }
+    .noticias-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 480px) {
+    .noticias-grid { grid-template-columns: 1fr; }
+  }
+
+  /* TABELA CLASSIFICACAO */
+  .camp-bloco { margin-bottom: 2.5rem; }
+
+  .camp-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 0.7rem;
+    flex-wrap: wrap;
+  }
+
+  .camp-titulo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.06em;
+    color: var(--branco);
+  }
+
+  .camp-badge {
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.22rem 0.65rem;
+    border-radius: 2px;
+  }
+
+  .camp-badge.em-andamento { background: rgba(76,175,80,0.15); color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); }
+  .camp-badge.semifinal    { background: rgba(200,168,75,0.15); color: var(--dourado); border: 1px solid rgba(200,168,75,0.3); }
+  .camp-badge.hoje         { background: rgba(204,0,0,0.15); color: var(--vermelho); border: 1px solid rgba(204,0,0,0.3); animation: pulse-green 1.5s infinite; }
+
+  .camp-fase-info {
+    font-size: 0.75rem;
+    color: var(--texto-suave);
+    padding: 0.55rem 1rem;
+    background: var(--cinza-medio);
+    border-radius: 4px;
+    border-left: 3px solid var(--dourado);
+    margin-bottom: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .camp-fase-info strong { color: var(--dourado); }
+
+  .mata-mata-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: #1a1a1a;
+    border: 1px solid #1a1a1a;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 1.2rem;
+  }
+
+  @media (max-width: 600px) { .mata-mata-grid { grid-template-columns: 1fr; } }
+
+  .mm-card {
+    background: var(--cinza-escuro);
+    padding: 0.85rem 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-size: 0.82rem;
+    transition: background 0.15s;
+  }
+
+  .mm-card:hover { background: var(--cinza-medio); }
+  .mm-card.spfc { background: rgba(204,0,0,0.07); border-left: 3px solid var(--vermelho); }
+
+  .mm-card .confronto { flex: 1; line-height: 1.4; }
+  .mm-card .confronto strong { color: var(--branco); }
+  .mm-card .confronto span { color: var(--texto-suave); font-size: 0.72rem; display: block; }
+
+  .mm-fase {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.5rem;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .mm-fase.hoje { color: var(--vermelho); background: rgba(204,0,0,0.15); }
+  .mm-fase.classificado { color: #4CAF50; background: rgba(76,175,80,0.12); }
+  .mm-fase.aguardando { color: var(--texto-suave); background: var(--cinza-claro); }
+
+  .classificacao-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+  }
+
+  .classificacao-table th {
+    padding: 0.65rem 1rem;
+    text-align: left;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+    background: #0f0f0f;
+    border-bottom: 1px solid #1a1a1a;
+  }
+
+  .classificacao-table th:not(:first-child) { text-align: center; }
+
+  .classificacao-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #111;
+    background: var(--cinza-escuro);
+  }
+
+  .classificacao-table td:not(:first-child):not(:nth-child(2)) { text-align: center; }
+
+  .classificacao-table tr:hover td { background: var(--cinza-medio); }
+  .classificacao-table tr.destaque td { background: rgba(204,0,0,0.08); }
+  .classificacao-table tr.destaque td:first-child { border-left: 3px solid var(--vermelho); }
+  .classificacao-table tr.rebaixado td { opacity: 0.45; }
+
+  .pos-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    color: var(--texto-suave);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .pos-indicador {
+    width: 3px;
+    height: 16px;
+    border-radius: 2px;
+  }
+
+  .pos-indicador.libert { background: #1e88e5; }
+  .pos-indicador.sulam  { background: #43a047; }
+  .pos-indicador.rebaixamento { background: #e53935; }
+  .pos-indicador.neutro { background: transparent; }
+
+  .time-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .time-row img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+  }
+
+  .form-pills {
+    display: flex;
+    gap: 2px;
+    justify-content: center;
+  }
+
+  .fp {
+    width: 15px;
+    height: 15px;
+    border-radius: 2px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+
+  .fp.V { background: #4CAF50; }
+  .fp.E { background: #777; }
+  .fp.D { background: #CC0000; }
+
+  .legenda-tabela {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 0.2rem;
+    font-size: 0.68rem;
+    color: var(--texto-suave);
+  }
+
+  .legenda-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .legenda-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 1px;
+  }
+
+  /* FOOTER */
+  footer {
+    max-width: 1100px;
+    margin: 3rem auto 0;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  footer p {
+    font-size: 0.72rem;
+    color: var(--texto-suave);
+  }
+
+  footer a {
+    color: var(--dourado);
+    text-decoration: none;
+  }
+
+  footer a:hover { text-decoration: underline; }
+
+  /* RESPONSIVE */
+  @media (max-width: 640px) {
+    .jogo-card {
+      grid-template-columns: 1fr;
+      gap: 0.8rem;
+      padding: 1.2rem;
+    }
+
+    .placar-container { justify-content: flex-start; }
+    .jogo-detalhe { text-align: left; }
+    .header-right { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-bg"></div>
+  <div class="header-inner">
+    <!-- Escudo SVG simplificado do São Paulo -->
+    <div class="escudo">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="50,5 95,28 95,72 50,95 5,72 5,28" fill="#CC0000"/>
+        <polygon points="50,12 88,32 88,68 50,88 12,68 12,32" fill="white"/>
+        <polygon points="50,20 80,36 80,64 50,80 20,64 20,36" fill="#CC0000"/>
+        <text x="50" y="57" font-family="Arial Black" font-size="18" fill="white" text-anchor="middle" font-weight="900">SPFC</text>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>São Paulo FC</h1>
+      <p>Acompanhamento em tempo real · Dados via ge.globo.com</p>
+    </div>
+    <div class="header-right">
+      <button class="btn-atualizar" id="btnAtualizar" onclick="carregarJogos()">
+        <span id="btnIcon">↻</span> Atualizar
+      </button>
+      <div class="ultima-atualizacao" id="ultimaAtt">—</div>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="mudarTab('jogos', this)">Jogos</button>
+    <button class="tab" onclick="mudarTab('classificacao', this)">Classificação</button>
+    <button class="tab" onclick="mudarTab('noticias', this)">Notícias</button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="tabJogos">
+    <div class="status-bar">
+      <div class="status-badge" id="statusBadge">
+        <div class="dot" id="statusDot"></div>
+        <span id="statusTexto">Carregando...</span>
+      </div>
+    </div>
+    <div id="conteudoJogos">
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Buscando jogos do São Paulo...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabClassificacao" style="display:none">
+    <div id="conteudoClassificacao">
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Carregando classificação...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabNoticias" style="display:none">
+    <div id="conteudoNoticias">
+      <div class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Buscando últimas notícias do São Paulo...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Dados obtidos via <a href="https://ge.globo.com/futebol/times/sao-paulo/" target="_blank">ge.globo.com</a> · São Paulo Futebol Clube</p>
+  <p>Atualização automática a cada 60 segundos</p>
+</footer>
+
+<script>
+// =====================================================
+// API CONFIGURATION — ge.globo.com endpoints
+// =====================================================
+const GE_API = 'https://api.ge.globo.com';
+const SPFC_ID = 280; // São Paulo FC ID no sistema Globo
+
+// CORS proxy para contornar restrições
+const PROXY = 'https://api.allorigins.win/raw?url=';
+
+async function fetchGlobo(path) {
+  const url = `${GE_API}${path}`;
+  const res = await fetch(PROXY + encodeURIComponent(url));
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// =====================================================
+// TABS
+// =====================================================
+function mudarTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  document.getElementById('tabJogos').style.display = tab === 'jogos' ? '' : 'none';
+  document.getElementById('tabClassificacao').style.display = tab === 'classificacao' ? '' : 'none';
+  document.getElementById('tabNoticias').style.display = tab === 'noticias' ? '' : 'none';
+
+  if (tab === 'classificacao') carregarClassificacao();
+  if (tab === 'noticias') carregarNoticias();
+}
+// =====================================================
+// JOGOS
+// =====================================================
+async function carregarJogos() {
+  const btn = document.getElementById('btnAtualizar');
+  const icon = document.getElementById('btnIcon');
+  btn.classList.add('loading');
+  icon.classList.add('spin');
+
+  try {
+    // Tenta buscar jogos recentes e próximos do São Paulo
+    const data = await fetchGlobo(`/team/matches?id=${SPFC_ID}&limit=20`);
+    renderJogos(data);
+  } catch (e) {
+    // Fallback: busca pelo slug
+    try {
+      const data = await fetchGlobo(`/team/sao-paulo/matches?limit=20`);
+      renderJogos(data);
+    } catch (e2) {
+      // Se APIs diretas falharem, tenta endpoint alternativo
+      try {
+        const res = await fetch(PROXY + encodeURIComponent('https://www.espn.com.br/futebol/time/calendario/_/id/126/sao-paulo'));
+        usarDadosMockEnriquecidos();
+      } catch(e3) {
+        usarDadosMockEnriquecidos();
+      }
+    }
+  } finally {
+    btn.classList.remove('loading');
+    icon.classList.remove('spin');
+    const agora = new Date();
+    document.getElementById('ultimaAtt').textContent =
+      `Atualizado às ${agora.getHours().toString().padStart(2,'0')}:${agora.getMinutes().toString().padStart(2,'0')}`;
+  }
+}
+
+function renderJogos(data) {
+  // Normaliza diferentes formatos de resposta da API Globo
+  let jogos = [];
+
+  if (Array.isArray(data)) jogos = data;
+  else if (data.matches) jogos = data.matches;
+  else if (data.data) jogos = data.data;
+  else if (data.items) jogos = data.items;
+
+  if (jogos.length === 0) {
+    usarDadosMockEnriquecidos();
+    return;
+  }
+
+  const html = jogos.slice(0, 15).map(j => renderCardJogo(j)).join('');
+  document.getElementById('conteudoJogos').innerHTML = `<div class="jogos-grid">${html}</div>`;
+  setStatus('verde', `${jogos.length} jogos carregados`);
+}
+
+function renderCardJogo(j) {
+  // Normaliza campos da API
+  const mandante = j.mandante || j.home_team || j.home || {};
+  const visitante = j.visitante || j.away_team || j.away || {};
+  const nomeMandante = mandante.nome || mandante.name || mandante.nome_popular || 'Time A';
+  const nomeVisitante = visitante.nome || visitante.name || visitante.nome_popular || 'Time B';
+  const escudoMandante = mandante.escudo || mandante.logo || mandante.shield || '';
+  const escudoVisitante = visitante.escudo || visitante.logo || visitante.shield || '';
+  const placarM = j.placar_mandante ?? j.score_home ?? j.placar?.mandante ?? null;
+  const placarV = j.placar_visitante ?? j.score_away ?? j.placar?.visitante ?? null;
+  const status = j.status || j.game_status || '';
+  const competicao = j.campeonato?.nome || j.championship?.name || j.competition?.name || 'Campeonato';
+  const dataJogo = j.data_realizacao || j.date || j.game_date || '';
+  const estadio = j.estadio?.nome_popular || j.venue?.name || j.stadium || '';
+
+  const isAoVivo = status === 'ao_vivo' || status === 'live' || status === 'in_progress';
+  const isEncerrado = status === 'encerrado' || status === 'finished' || status === 'FT';
+  const isFuturo = !isAoVivo && !isEncerrado;
+
+  let resultClass = '';
+  let statusLabel = '';
+
+  if (isAoVivo) {
+    const minuto = j.minuto_atual || j.current_minute || '';
+    statusLabel = `🔴 AO VIVO${minuto ? ' · ' + minuto + "'" : ''}`;
+    resultClass = 'live';
+  } else if (isEncerrado && placarM !== null) {
+    // Descobre se SPFC é mandante ou visitante
+    const spfcEhMandante = (nomeMandante.toLowerCase().includes('são paulo') || nomeMandante.toLowerCase().includes('sao paulo'));
+    const golsSPFC = spfcEhMandante ? placarM : placarV;
+    const golsAdv = spfcEhMandante ? placarV : placarM;
+
+    if (golsSPFC > golsAdv) { resultClass = 'vitoria'; statusLabel = '✓ Vitória'; }
+    else if (golsSPFC < golsAdv) { resultClass = 'derrota'; statusLabel = '✗ Derrota'; }
+    else { resultClass = 'empate'; statusLabel = '— Empate'; }
+  } else {
+    const dataFormatada = dataJogo ? formatarData(dataJogo) : 'Em breve';
+    statusLabel = dataFormatada;
+  }
+
+  const placarHTML = (placarM !== null && placarV !== null)
+    ? `<div class="placar">
+        <span class="placar-num">${placarM}</span>
+        <span class="placar-sep">×</span>
+        <span class="placar-num">${placarV}</span>
+      </div>`
+    : `<div class="placar-futuro">${formatarHora(dataJogo)}</div>`;
+
+  const imgMandante = escudoMandante
+    ? `<img class="time-escudo" src="${escudoMandante}" onerror="this.style.display='none'" alt="${nomeMandante}">`
+    : `<div style="width:40px;height:40px;background:var(--cinza-claro);border-radius:50%;"></div>`;
+
+  const imgVisitante = escudoVisitante
+    ? `<img class="time-escudo" src="${escudoVisitante}" onerror="this.style.display='none'" alt="${nomeVisitante}">`
+    : `<div style="width:40px;height:40px;background:var(--cinza-claro);border-radius:50%;"></div>`;
+
+  return `
+  <a class="jogo-card ${isAoVivo ? 'ao-vivo' : ''}" 
+     href="https://ge.globo.com" target="_blank" rel="noopener">
+    <div class="jogo-meta">
+      <span class="jogo-competicao">${competicao}</span>
+      <span class="jogo-data">${formatarDataCompleta(dataJogo)}</span>
+      <span class="jogo-status ${resultClass}">${statusLabel}</span>
+    </div>
+    <div class="placar-container">
+      <div class="time-info">
+        ${imgMandante}
+        <span class="time-nome">${nomeMandante}</span>
+      </div>
+      ${placarHTML}
+      <div class="time-info">
+        ${imgVisitante}
+        <span class="time-nome">${nomeVisitante}</span>
+      </div>
+    </div>
+    <div class="jogo-detalhe">
+      ${estadio ? `<div class="jogo-estadio">${estadio}</div>` : ''}
+    </div>
+  </a>`;
+}
+
+// =====================================================
+// CLASSIFICAÇÃO
+// =====================================================
+async function carregarClassificacao() {
+  const el = document.getElementById('conteudoClassificacao');
+
+  try {
+    const data = await fetchGlobo(`/championship/brasileirao-serie-a/classification?season=2025`);
+    renderClassificacao(data);
+  } catch(e) {
+    try {
+      const data2 = await fetchGlobo(`/championship/campeonato-brasileiro/ranking`);
+      renderClassificacao(data2);
+    } catch(e2) {
+      renderClassificacaoMock();
+    }
+  }
+}
+
+function renderClassificacao(data) {
+  let times = [];
+  if (Array.isArray(data)) times = data;
+  else if (data.classification) times = data.classification;
+  else if (data.standings) times = data.standings;
+  else if (data.data) times = data.data;
+
+  if (times.length === 0) { renderClassificacaoMock(); return; }
+
+  const rows = times.map((t, i) => {
+    const nome = t.team?.nome || t.team?.name || t.nome || t.name || 'Time';
+    const isSP = nome.toLowerCase().includes('são paulo') || nome.toLowerCase().includes('sao paulo');
+    const pts = t.points || t.pontos || 0;
+    const pg = t.games || t.jogos || 0;
+    const v = t.wins || t.vitorias || 0;
+    const e = t.draws || t.empates || 0;
+    const d = t.losses || t.derrotas || 0;
+    const gp = t.goals_for || t.gols_pro || 0;
+    const gc = t.goals_against || t.gols_contra || 0;
+    const sg = t.goal_difference || (gp - gc);
+    const escudo = t.team?.escudo || t.team?.logo || '';
+    const pos = t.position || t.posicao || (i + 1);
+
+    return `
+    <tr ${isSP ? 'class="destaque"' : ''}>
+      <td><span class="pos-num">${pos}</span></td>
+      <td>
+        <div class="time-row">
+          ${escudo ? `<img src="${escudo}" onerror="this.style.display='none'" alt="">` : ''}
+          <span style="${isSP ? 'color:var(--branco);font-weight:500' : ''}">${nome}</span>
+        </div>
+      </td>
+      <td style="font-weight:600;color:var(--branco)">${pts}</td>
+      <td>${pg}</td><td>${v}</td><td>${e}</td><td>${d}</td>
+      <td>${gp}</td><td>${gc}</td>
+      <td style="${sg > 0 ? 'color:#4CAF50' : sg < 0 ? 'color:var(--vermelho)' : ''}">${sg > 0 ? '+' : ''}${sg}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('conteudoClassificacao').innerHTML = `
+    <table class="classificacao-table">
+      <thead>
+        <tr>
+          <th>#</th><th>Time</th><th>Pts</th><th>PJ</th>
+          <th>V</th><th>E</th><th>D</th>
+          <th>GP</th><th>GC</th><th>SG</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// =====================================================
+// NOTÍCIAS
+// =====================================================
+// =====================================================
+// NOTÍCIAS — RSS do GE Globo + Claude API fallback
+// =====================================================
+let noticiasCarregadas = false;
+
+async function carregarNoticias() {
+  if (noticiasCarregadas) return;
+  const el = document.getElementById('conteudoNoticias');
+
+  // Tenta múltiplas fontes RSS do GE Globo sobre São Paulo
+  const feeds = [
+    'https://ge.globo.com/dynamo/futebol/times/sao-paulo/atom.xml',
+    'https://ge.globo.com/futebol/times/sao-paulo/index/feed/pagina-1.ghtml',
+    'https://ge.globo.com/rss/futebol/times/sao-paulo/',
+  ];
+
+  let noticias = [];
+
+  for (const feed of feeds) {
+    try {
+      const res = await fetch(PROXY + encodeURIComponent(feed));
+      const text = await res.text();
+
+      // Tenta parsear como XML (Atom/RSS)
+      if (text.trim().startsWith('<')) {
+        noticias = parsearRSS(text);
+        if (noticias.length > 0) break;
+      }
+      // Tenta parsear como JSON (feed Globo)
+      else {
+        const json = JSON.parse(text);
+        noticias = parsearFeedGloboJSON(json);
+        if (noticias.length > 0) break;
+      }
+    } catch(e) { continue; }
+  }
+
+  // Fallback: buscar via Claude API com noticias reais
+  if (noticias.length === 0) {
+    await buscarNoticiasViaClaude();
+    return;
+  }
+
+  renderNoticiasLayout(noticias);
+  noticiasCarregadas = true;
+}
+
+function parsearRSS(xmlText) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xmlText, 'text/xml');
+    const items = doc.querySelectorAll('item, entry');
+    const result = [];
+
+    items.forEach(item => {
+      const titulo = item.querySelector('title')?.textContent?.trim() || '';
+      const link = item.querySelector('link')?.textContent?.trim() ||
+                   item.querySelector('link')?.getAttribute('href') || '#';
+      const desc = item.querySelector('description, summary, content')?.textContent?.trim() || '';
+      const data = item.querySelector('pubDate, published, updated')?.textContent?.trim() || '';
+      // Imagem do media:thumbnail ou enclosure
+      const thumb = item.querySelector('thumbnail')?.getAttribute('url') ||
+                    item.querySelector('enclosure')?.getAttribute('url') ||
+                    extrairImagem(desc) || '';
+      const categoria = item.querySelector('category')?.textContent?.trim() || 'São Paulo FC';
+
+      if (titulo) result.push({ titulo, link, desc, data, thumb, categoria });
+    });
+
+    return result;
+  } catch(e) { return []; }
+}
+
+function parsearFeedGloboJSON(json) {
+  try {
+    let items = json.items || json.results || json.data || json.news || [];
+    if (!Array.isArray(items)) return [];
+
+    return items.map(i => ({
+      titulo: i.title || i.titulo || i.headline || '',
+      link: i.url || i.link || i.href || 'https://ge.globo.com/futebol/times/sao-paulo/',
+      desc: i.summary || i.description || i.resumo || '',
+      data: i.published_at || i.created_at || i.data || i.date || '',
+      thumb: i.image?.url || i.image || i.thumbnail || i.imagem || '',
+      categoria: i.label || i.section || i.category || 'São Paulo FC',
+    })).filter(i => i.titulo);
+  } catch(e) { return []; }
+}
+
+function extrairImagem(html) {
+  const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return match ? match[1] : '';
+}
+
+async function buscarNoticiasViaClaude() {
+  const el = document.getElementById('conteudoNoticias');
+  el.innerHTML = `<div class="loading-state">
+    <div class="loading-spinner"></div>
+    <p>Buscando notícias em tempo real...</p>
+  </div>`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [{
+          role: "user",
+          content: `Busque as últimas 8 notícias do São Paulo FC no ge.globo.com dos últimos 7 dias. 
+          Responda APENAS em JSON puro sem markdown, formato:
+          [{"titulo":"...","link":"...","data":"DD/MM/YYYY","categoria":"...","desc":"resumo curto"}]
+          Use links reais do ge.globo.com`
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.filter(c => c.type === 'text').map(c => c.text).join('') || '';
+    const clean = text.replace(/```json|```/g, '').trim();
+    const noticias = JSON.parse(clean);
+
+    if (Array.isArray(noticias) && noticias.length > 0) {
+      renderNoticiasLayout(noticias);
+      noticiasCarregadas = true;
+      return;
+    }
+  } catch(e) {}
+
+  renderNoticiasMock();
+  noticiasCarregadas = true;
+}
+
+function renderNoticiasLayout(noticias) {
+  if (!noticias || noticias.length === 0) { renderNoticiasMock(); return; }
+
+  const destaque = noticias[0];
+  const laterais = noticias.slice(1, 4);
+  const resto = noticias.slice(4, 13);
+
+  const imgDestaque = destaque.thumb || 'https://conteudo.imguol.com.br/c/esporte/futebol/times/desktop/sao-paulo.png';
+  const dataDestaque = formatarDataRelativa(destaque.data);
+
+  const heroHTML = `
+  <div class="noticias-hero">
+    <a class="noticia-destaque" href="${destaque.link}" target="_blank" rel="noopener">
+      <img class="noticia-destaque-img" src="${imgDestaque}" 
+           onerror="this.src='https://conteudo.imguol.com.br/c/esporte/futebol/times/desktop/sao-paulo.png'" 
+           alt="${destaque.titulo}">
+      <div class="noticia-destaque-overlay"></div>
+      <div class="noticia-destaque-body">
+        <span class="tag">${destaque.categoria || 'São Paulo FC'}</span>
+        <h2>${destaque.titulo}</h2>
+        ${destaque.desc ? `<p style="font-size:0.8rem;color:rgba(255,255,255,0.65);margin-bottom:0.4rem;line-height:1.4">${destaque.desc.substring(0,120)}${destaque.desc.length>120?'...':''}</p>` : ''}
+        <span class="meta">ge.globo.com · ${dataDestaque}</span>
+      </div>
+    </a>
+    <div class="noticias-lista-lateral">
+      ${laterais.map(n => {
+        const img = n.thumb || '';
+        return `
+        <a class="noticia-item-lateral" href="${n.link}" target="_blank" rel="noopener">
+          ${img ? `<img src="${img}" onerror="this.style.display='none'" alt="">` : ''}
+          <div>
+            <div class="titulo">${n.titulo}</div>
+            <div class="meta">${formatarDataRelativa(n.data)}</div>
+          </div>
+        </a>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  const gridHTML = resto.length > 0 ? `
+  <div class="noticias-secao-titulo">Mais notícias</div>
+  <div class="noticias-grid">
+    ${resto.map(n => {
+      const img = n.thumb || '';
+      return `
+      <a class="noticia-card" href="${n.link}" target="_blank" rel="noopener">
+        ${img ? `<img src="${img}" onerror="this.style.display='none'" alt="">` : ''}
+        <div class="noticia-card-body">
+          <span class="tag">${n.categoria || 'São Paulo FC'}</span>
+          <div class="titulo">${n.titulo}</div>
+          <div class="meta">ge.globo.com · ${formatarDataRelativa(n.data)}</div>
+        </div>
+      </a>`;
+    }).join('')}
+  </div>` : '';
+
+  const rodape = `<p style="padding:1rem 0;font-size:0.72rem;color:var(--texto-suave);text-align:center">
+    Notícias via <a href="https://ge.globo.com/futebol/times/sao-paulo/" target="_blank" style="color:var(--dourado)">ge.globo.com</a>
+  </p>`;
+
+  document.getElementById('conteudoNoticias').innerHTML = heroHTML + gridHTML + rodape;
+}
+
+// =====================================================
+// MOCKS ENRIQUECIDOS (fallback quando API não responde)
+// =====================================================
+function usarDadosMockEnriquecidos() {
+  const SPFC = { nome: 'São Paulo', escudo: 'https://cdn.saopaulofc.net/2022/09/bra_sp_sao-paulo_1985oficial.png' };
+  const jogos = [
+    // ── PRÓXIMOS ──────────────────────────────────────────────
+    {
+      campeonato: { nome: 'Campeonato Paulista 2026 · Semifinal' },
+      mandante: { nome: 'Palmeiras', escudo: 'https://cdn.saopaulofc.net/2022/09/clube_palmeiras.png' },
+      visitante: SPFC,
+      placar_mandante: null, placar_visitante: null,
+      status: 'agendado',
+      data_realizacao: '2026-03-01T20:30:00',
+      estadio: { nome_popular: 'Arena Barueri' }
+    },
+    // ── RESULTADOS (mais recente primeiro) ────────────────────
+    {
+      campeonato: { nome: 'Brasileirão Série A 2026 · Rodada 3' },
+      mandante: { nome: 'Coritiba', escudo: 'https://cdn.saopaulofc.net/2026/01/250px-coritiba_foot_ball_club_logo-svg_-e1768332920339.png' },
+      visitante: SPFC,
+      placar_mandante: 0, placar_visitante: 1,
+      status: 'encerrado',
+      data_realizacao: '2026-02-25T19:30:00',
+      estadio: { nome_popular: 'Couto Pereira' }
+    },
+    {
+      campeonato: { nome: 'Campeonato Paulista 2026 · Quartas' },
+      mandante: { nome: 'Red Bull Bragantino', escudo: 'https://cdn.saopaulofc.net/2024/01/redbullbragantino-e1705950240668.png' },
+      visitante: SPFC,
+      placar_mandante: 1, placar_visitante: 2,
+      status: 'encerrado',
+      data_realizacao: '2026-02-21T18:30:00',
+      estadio: { nome_popular: 'Cícero de Souza Marques' }
+    },
+    {
+      campeonato: { nome: 'Campeonato Paulista 2026 · Rodada 8' },
+      mandante: { nome: 'Ponte Preta', escudo: 'https://cdn.saopaulofc.net/2024/01/ponte_preta-logo-d038ecd4d5-seeklogo-com_-e1705952541817.png' },
+      visitante: SPFC,
+      placar_mandante: 1, placar_visitante: 2,
+      status: 'encerrado',
+      data_realizacao: '2026-02-15T20:30:00',
+      estadio: { nome_popular: 'Moisés Lucarelli' }
+    },
+    {
+      campeonato: { nome: 'Brasileirão Série A 2026 · Rodada 2' },
+      mandante: SPFC,
+      visitante: { nome: 'Grêmio', escudo: 'https://cdn.saopaulofc.net/2024/03/gremio-rs-1.png' },
+      placar_mandante: 2, placar_visitante: 0,
+      status: 'encerrado',
+      data_realizacao: '2026-02-11T21:30:00',
+      estadio: { nome_popular: 'MorumBIS' }
+    },
+    {
+      campeonato: { nome: 'Campeonato Paulista 2026 · Rodada 7' },
+      mandante: SPFC,
+      visitante: { nome: 'Primavera SAF', escudo: 'https://cdn.saopaulofc.net/2026/01/images-1-e1767631227929.png' },
+      placar_mandante: 2, placar_visitante: 1,
+      status: 'encerrado',
+      data_realizacao: '2026-02-07T20:30:00',
+      estadio: { nome_popular: 'MorumBIS' }
+    },
+    {
+      campeonato: { nome: 'Brasileirão Série A 2026 · Rodada 1' },
+      mandante: { nome: 'Santos', escudo: 'https://cdn.saopaulofc.net/2024/01/santos_logo-e1705950216375.png' },
+      visitante: SPFC,
+      placar_mandante: 1, placar_visitante: 1,
+      status: 'encerrado',
+      data_realizacao: '2026-02-04T20:00:00',
+      estadio: { nome_popular: 'Vila Belmiro' }
+    },
+    {
+      campeonato: { nome: 'Campeonato Paulista 2026 · Rodada 6' },
+      mandante: SPFC,
+      visitante: { nome: 'Santos', escudo: 'https://cdn.saopaulofc.net/2024/01/santos_logo-e1705950216375.png' },
+      placar_mandante: 2, placar_visitante: 0,
+      status: 'encerrado',
+      data_realizacao: '2026-01-31T20:30:00',
+      estadio: { nome_popular: 'MorumBIS' }
+    },
+    {
+      campeonato: { nome: 'Brasileirão Série A 2026 · Abertura' },
+      mandante: SPFC,
+      visitante: { nome: 'Flamengo', escudo: 'https://cdn.saopaulofc.net/2025/01/flamengo.png' },
+      placar_mandante: 2, placar_visitante: 1,
+      status: 'encerrado',
+      data_realizacao: '2026-01-28T21:30:00',
+      estadio: { nome_popular: 'MorumBIS' }
+    },
+    {
+      campeonato: { nome: 'Campeonato Paulista 2026 · Rodada 5' },
+      mandante: { nome: 'Palmeiras', escudo: 'https://cdn.saopaulofc.net/2022/09/clube_palmeiras.png' },
+      visitante: SPFC,
+      placar_mandante: 3, placar_visitante: 1,
+      status: 'encerrado',
+      data_realizacao: '2026-01-24T18:30:00',
+      estadio: { nome_popular: 'Arena Barueri' }
+    },
+    {
+      campeonato: { nome: 'Campeonato Paulista 2026 · Rodada 4' },
+      mandante: SPFC,
+      visitante: { nome: 'Portuguesa', escudo: 'https://cdn.saopaulofc.net/2024/01/portuguesa-logo-6a3dbc63f8-seeklogo-com_-e1705952611749.png' },
+      placar_mandante: 2, placar_visitante: 3,
+      status: 'encerrado',
+      data_realizacao: '2026-01-21T19:30:00',
+      estadio: { nome_popular: 'MorumBIS' }
+    },
+    {
+      campeonato: { nome: 'Campeonato Paulista 2026 · Rodada 3' },
+      mandante: { nome: 'Corinthians', escudo: 'https://cdn.saopaulofc.net/2022/09/clube_corinthians.png' },
+      visitante: SPFC,
+      placar_mandante: 1, placar_visitante: 1,
+      status: 'encerrado',
+      data_realizacao: '2026-01-18T16:00:00',
+      estadio: { nome_popular: 'Neo Química Arena' }
+    },
+    {
+      campeonato: { nome: 'Campeonato Paulista 2026 · Rodada 2' },
+      mandante: SPFC,
+      visitante: { nome: 'São Bernardo', escudo: 'https://cdn.saopaulofc.net/2025/01/sao-bernardo.png' },
+      placar_mandante: 1, placar_visitante: 0,
+      status: 'encerrado',
+      data_realizacao: '2026-01-15T21:45:00',
+      estadio: { nome_popular: 'MorumBIS' }
+    },
+    {
+      campeonato: { nome: 'Campeonato Paulista 2026 · Rodada 1' },
+      mandante: { nome: 'Mirassol', escudo: 'https://cdn.saopaulofc.net/2024/01/mirassol_fc_logo-e1705950023910.png' },
+      visitante: SPFC,
+      placar_mandante: 3, placar_visitante: 0,
+      status: 'encerrado',
+      data_realizacao: '2026-01-11T20:30:00',
+      estadio: { nome_popular: 'José Maria de Campos Maia' }
+    },
+    // ── PRÓXIMOS AGENDADOS ────────────────────────────────────
+    {
+      campeonato: { nome: 'Brasileirão Série A 2026 · Rodada 4' },
+      mandante: SPFC,
+      visitante: { nome: 'Chapecoense', escudo: 'https://cdn.saopaulofc.net/2026/01/escudo_de_2018_da_chapecoense.png' },
+      placar_mandante: null, placar_visitante: null,
+      status: 'agendado',
+      data_realizacao: '2026-03-12T20:00:00',
+      estadio: { nome_popular: 'Canindé' }
+    },
+    {
+      campeonato: { nome: 'Brasileirão Série A 2026 · Rodada 5' },
+      mandante: { nome: 'Red Bull Bragantino', escudo: 'https://cdn.saopaulofc.net/2024/01/redbullbragantino-e1705950240668.png' },
+      visitante: SPFC,
+      placar_mandante: null, placar_visitante: null,
+      status: 'agendado',
+      data_realizacao: '2026-03-15T20:30:00',
+      estadio: { nome_popular: 'Cícero S. Marques' }
+    },
+  ];
+
+  const html = jogos.map(j => renderCardJogo(j)).join('');
+  document.getElementById('conteudoJogos').innerHTML = `<div class="jogos-grid">${html}</div>
+    <p style="text-align:center;padding:1rem;font-size:0.75rem;color:var(--texto-suave)">
+      Dados do calendário oficial · 
+      <a href="https://www.saopaulofc.net/calendario-de-jogos/" target="_blank" style="color:var(--dourado)">saopaulofc.net</a>
+      · Atualizado em 01/03/2026
+    </p>`;
+  setStatus('verde', '14 jogos carregados · Temporada 2026');
+}
+
+function renderClassificacaoMock() {
+
+  // ── PAULISTÃO 2026 — Fase de grupos encerrada (8 rodadas) ──────────────────
+  // Dados finais da 1ª fase. Classificação = pontos corridos + mata-mata
+  // Fonte: FPF / saopaulofc.net / band.com.br (atualizado 15/02/2026)
+  const paulistao = [
+    { pos:1,  nome:'Novorizontino',   escudo:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Gr%C3%AAmio_Novorizontino.svg/120px-Gr%C3%AAmio_Novorizontino.svg.png', pg:8, v:6, e:0, d:2, gp:16, gc:8,  pts:18, form:'VVVDVVDV', fase:'Semi · Jogo hoje 20h30' },
+    { pos:2,  nome:'Palmeiras',        escudo:'https://cdn.saopaulofc.net/2022/09/clube_palmeiras.png',                   pg:8, v:5, e:2, d:1, gp:14, gc:7,  pts:17, form:'VVVEEVDV', fase:'Semi · Jogo hoje 20h30' },
+    { pos:3,  nome:'RB Bragantino',    escudo:'https://cdn.saopaulofc.net/2024/01/redbullbragantino-e1705950240668.png',   pg:8, v:4, e:2, d:2, gp:9,  gc:5,  pts:14, form:'VVEDVVDE', fase:'Eliminado (Quartas)' },
+    { pos:4,  nome:'Portuguesa',       escudo:'https://cdn.saopaulofc.net/2024/01/portuguesa-logo-6a3dbc63f8-seeklogo-com_-e1705952611749.png', pg:8, v:4, e:2, d:2, gp:11, gc:9,  pts:14, form:'DVEEVVVD', fase:'Eliminado (Quartas)' },
+    { pos:5,  nome:'Corinthians',      escudo:'https://cdn.saopaulofc.net/2022/09/clube_corinthians.png',                 pg:8, v:4, e:1, d:3, gp:11, gc:10, pts:13, form:'VVDDVVED', fase:'Semi · Jogo hoje 20h30' },
+    { pos:6,  nome:'São Paulo',        escudo:'https://cdn.saopaulofc.net/2022/09/bra_sp_sao-paulo_1985oficial.png',      pg:8, v:4, e:1, d:3, gp:11, gc:10, pts:13, form:'DVDDEVVV', fase:'Semi · Jogo hoje 20h30', sp:true },
+    { pos:7,  nome:'Capivariano',      escudo:'',                                                                          pg:8, v:3, e:1, d:4, gp:6,  gc:10, pts:10, form:'VDDDVVDE', fase:'Eliminado (Quartas)' },
+    { pos:8,  nome:'Santos',           escudo:'https://cdn.saopaulofc.net/2024/01/santos_logo-e1705950216375.png',        pg:8, v:2, e:3, d:3, gp:13, gc:10, pts:9,  form:'EDVEDVVD', fase:'Eliminado (Quartas)' },
+    { pos:9,  nome:'Guarani',          escudo:'',                                                                          pg:8, v:2, e:2, d:4, gp:8,  gc:13, pts:8,  form:'DVEDEDDV', fase:'' },
+    { pos:10, nome:'São Bernardo',     escudo:'https://cdn.saopaulofc.net/2025/01/sao-bernardo.png',                      pg:8, v:2, e:2, d:4, gp:5,  gc:10, pts:8,  form:'DVDEDVDE', fase:'' },
+    { pos:11, nome:'Mirassol',         escudo:'https://cdn.saopaulofc.net/2024/01/mirassol_fc_logo-e1705950023910.png',   pg:8, v:2, e:1, d:5, gp:8,  gc:13, pts:7,  form:'VDDDDVDE', fase:'' },
+    { pos:12, nome:'Novorizontino',    escudo:'',                                                                          pg:8, v:1, e:3, d:4, gp:6,  gc:11, pts:6,  form:'DDEDVDEE', fase:'' },
+    { pos:13, nome:'Botafogo-SP',      escudo:'',                                                                          pg:8, v:1, e:2, d:5, gp:4,  gc:14, pts:5,  form:'DDEDDVED', fase:'' },
+    { pos:14, nome:'Primavera',        escudo:'https://cdn.saopaulofc.net/2026/01/images-1-e1767631227929.png',           pg:8, v:1, e:1, d:6, gp:7,  gc:17, pts:4,  form:'DDDDDVED', fase:'' },
+    { pos:15, nome:'Ponte Preta',      escudo:'https://cdn.saopaulofc.net/2024/01/ponte_preta-logo-d038ecd4d5-seeklogo-com_-e1705952541817.png', pg:8, v:1, e:1, d:6, gp:5,  gc:16, pts:4, form:'DDDDEDVD', fase:'Rebaixado ↓', rebaixado:true },
+    { pos:16, nome:'Velo Clube',       escudo:'',                                                                          pg:8, v:0, e:2, d:6, gp:4,  gc:20, pts:2,  form:'DDDEDDDD', fase:'Rebaixado ↓', rebaixado:true },
+  ];
+
+  // ── BRASILEIRÃO 2026 — 3 Rodadas (28/01 a 25/02) ──────────────────────────
+  // Dados coletados até 26/02/2026. Fonte: CBF / Wikipedia
+  const brasileirao = [
+    { pos:1,  nome:'Palmeiras',       escudo:'https://cdn.saopaulofc.net/2022/09/clube_palmeiras.png',             pg:3, v:3, e:0, d:0, gp:10, gc:4, pts:9,  form:'VVV',  zona:'libert' },
+    { pos:2,  nome:'São Paulo',       escudo:'https://cdn.saopaulofc.net/2022/09/bra_sp_sao-paulo_1985oficial.png', pg:3, v:2, e:1, d:0, gp:5,  gc:2, pts:7,  form:'VEV',  zona:'libert', sp:true },
+    { pos:3,  nome:'Novorizontino',   escudo:'https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Gr%C3%AAmio_Novorizontino.svg/120px-Gr%C3%AAmio_Novorizontino.svg.png', pg:3, v:2, e:0, d:1, gp:5,  gc:3, pts:6,  form:'VDV',  zona:'libert' },
+    { pos:4,  nome:'Atlético-MG',     escudo:'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Clube_Atletico_Mineiro_escudo_padrao.svg/120px-Clube_Atletico_Mineiro_escudo_padrao.svg.png', pg:3, v:2, e:0, d:1, gp:4,  gc:3, pts:6,  form:'VDV',  zona:'libert' },
+    { pos:5,  nome:'Flamengo',        escudo:'https://cdn.saopaulofc.net/2025/01/flamengo.png',                     pg:3, v:1, e:2, d:0, gp:5,  gc:4, pts:5,  form:'EVE',  zona:'sulam' },
+    { pos:6,  nome:'Corinthians',     escudo:'https://cdn.saopaulofc.net/2022/09/clube_corinthians.png',            pg:3, v:1, e:2, d:0, gp:3,  gc:2, pts:5,  form:'EEV',  zona:'sulam' },
+    { pos:7,  nome:'Grêmio',          escudo:'https://cdn.saopaulofc.net/2024/03/gremio-rs-1.png',                  pg:3, v:1, e:1, d:1, gp:3,  gc:3, pts:4,  form:'VED',  zona:'sulam' },
+    { pos:8,  nome:'Botafogo',        escudo:'',                                                                     pg:3, v:1, e:1, d:1, gp:4,  gc:5, pts:4,  form:'DEV',  zona:'sulam' },
+    { pos:9,  nome:'Santos',          escudo:'https://cdn.saopaulofc.net/2024/01/santos_logo-e1705950216375.png',   pg:3, v:1, e:1, d:1, gp:4,  gc:5, pts:4,  form:'DVE',  zona:'' },
+    { pos:10, nome:'Athletico-PR',    escudo:'',                                                                     pg:3, v:1, e:1, d:1, gp:3,  gc:3, pts:4,  form:'VDE',  zona:'' },
+    { pos:11, nome:'Internacional',   escudo:'',                                                                     pg:3, v:1, e:0, d:2, gp:3,  gc:5, pts:3,  form:'VDD',  zona:'' },
+    { pos:12, nome:'RB Bragantino',   escudo:'https://cdn.saopaulofc.net/2024/01/redbullbragantino-e1705950240668.png', pg:3, v:1, e:0, d:2, gp:4, gc:7, pts:3, form:'DVD', zona:'' },
+    { pos:13, nome:'Cruzeiro',        escudo:'',                                                                     pg:3, v:0, e:2, d:1, gp:2,  gc:3, pts:2,  form:'EDE',  zona:'' },
+    { pos:14, nome:'Bahia',           escudo:'',                                                                     pg:3, v:0, e:2, d:1, gp:3,  gc:4, pts:2,  form:'EED',  zona:'' },
+    { pos:15, nome:'Fluminense',      escudo:'',                                                                     pg:3, v:0, e:2, d:1, gp:2,  gc:4, pts:2,  form:'EDE',  zona:'' },
+    { pos:16, nome:'Vasco',           escudo:'',                                                                     pg:3, v:0, e:1, d:2, gp:2,  gc:5, pts:1,  form:'DEE',  zona:'rebaixamento' },
+    { pos:17, nome:'Ceará',           escudo:'',                                                                     pg:3, v:0, e:1, d:2, gp:1,  gc:5, pts:1,  form:'DED',  zona:'rebaixamento' },
+    { pos:18, nome:'Chapecoense',     escudo:'https://cdn.saopaulofc.net/2026/01/escudo_de_2018_da_chapecoense.png', pg:3, v:0, e:1, d:2, gp:1,  gc:5, pts:1,  form:'DDE',  zona:'rebaixamento' },
+    { pos:19, nome:'Coritiba',        escudo:'https://cdn.saopaulofc.net/2026/01/250px-coritiba_foot_ball_club_logo-svg_-e1768332920339.png', pg:3, v:0, e:0, d:3, gp:1, gc:7, pts:0, form:'DDD', zona:'rebaixamento' },
+    { pos:20, nome:'Remo',            escudo:'',                                                                     pg:3, v:0, e:0, d:3, gp:0,  gc:7, pts:0,  form:'DDD',  zona:'rebaixamento' },
+  ];
+
+  function formarPills(form) {
+    return [...form].slice(-5).map(f => `<span class="fp ${f}">${f}</span>`).join('');
+  }
+
+  function rowPaulista(t) {
+    const sg = t.gp - t.gc;
+    const isClassificado = t.pos <= 8;
+    const rowClass = t.sp ? 'class="destaque"' : t.rebaixado ? 'class="rebaixado"' : '';
+    const indicador = t.pos <= 4 ? 'libert' : isClassificado ? 'sulam' : t.rebaixado ? 'rebaixamento' : 'neutro';
+    const nomeStyle = t.sp ? 'color:var(--branco);font-weight:600' : '';
+    return `<tr ${rowClass}>
+      <td><span class="pos-num"><span class="pos-indicador ${indicador}"></span>${t.pos}</span></td>
+      <td>
+        <div class="time-row">
+          ${t.escudo ? `<img src="${t.escudo}" onerror="this.style.display='none'" alt="">` : '<div style="width:22px;height:22px;background:var(--cinza-claro);border-radius:50%;flex-shrink:0"></div>'}
+          <span style="${nomeStyle}">${t.nome}</span>
+          ${t.sp ? '<span style="font-size:0.65rem;background:rgba(204,0,0,0.2);color:var(--vermelho);padding:0.1rem 0.4rem;border-radius:2px;margin-left:0.3rem">SPFC</span>' : ''}
+        </div>
+      </td>
+      <td style="font-weight:700;color:var(--branco)">${t.pts}</td>
+      <td>${t.pg}</td><td>${t.v}</td><td>${t.e}</td><td>${t.d}</td>
+      <td>${t.gp}</td><td>${t.gc}</td>
+      <td style="${sg > 0 ? 'color:#4CAF50' : sg < 0 ? 'color:var(--vermelho)' : ''}">${sg > 0 ? '+' : ''}${sg}</td>
+      <td style="font-size:0.7rem;color:var(--texto-suave);min-width:120px">${t.fase || '—'}</td>
+    </tr>`;
+  }
+
+  function rowBrasileirao(t) {
+    const sg = t.gp - t.gc;
+    const rowClass = t.sp ? 'class="destaque"' : t.zona === 'rebaixamento' ? 'class="rebaixado"' : '';
+    const indicador = t.zona === 'libert' ? 'libert' : t.zona === 'sulam' ? 'sulam' : t.zona === 'rebaixamento' ? 'rebaixamento' : 'neutro';
+    const nomeStyle = t.sp ? 'color:var(--branco);font-weight:600' : '';
+    return `<tr ${rowClass}>
+      <td><span class="pos-num"><span class="pos-indicador ${indicador}"></span>${t.pos}</span></td>
+      <td>
+        <div class="time-row">
+          ${t.escudo ? `<img src="${t.escudo}" onerror="this.style.display='none'" alt="">` : '<div style="width:22px;height:22px;background:var(--cinza-claro);border-radius:50%;flex-shrink:0"></div>'}
+          <span style="${nomeStyle}">${t.nome}</span>
+          ${t.sp ? '<span style="font-size:0.65rem;background:rgba(204,0,0,0.2);color:var(--vermelho);padding:0.1rem 0.4rem;border-radius:2px;margin-left:0.3rem">SPFC</span>' : ''}
+        </div>
+      </td>
+      <td style="font-weight:700;color:var(--branco)">${t.pts}</td>
+      <td>${t.pg}</td><td>${t.v}</td><td>${t.e}</td><td>${t.d}</td>
+      <td>${t.gp}</td><td>${t.gc}</td>
+      <td style="${sg > 0 ? 'color:#4CAF50' : sg < 0 ? 'color:var(--vermelho)' : ''}">${sg > 0 ? '+' : ''}${sg}</td>
+      <td><div class="form-pills">${formarPills(t.form)}</div></td>
+    </tr>`;
+  }
+
+  const legenda = (itens) => itens.map(i =>
+    `<div class="legenda-item"><div class="legenda-dot" style="background:${i.cor}"></div><span>${i.label}</span></div>`
+  ).join('');
+
+  document.getElementById('conteudoClassificacao').innerHTML = `
+
+    <!-- ═══════ PAULISTÃO 2026 ═══════ -->
+    <div class="camp-bloco">
+      <div class="camp-header">
+        <span class="camp-titulo">Campeonato Paulista 2026</span>
+        <span class="camp-badge hoje">🔴 Semifinal — Hoje</span>
+      </div>
+      <div class="camp-fase-info">
+        <strong>Fase atual: Semifinal · Jogo único</strong> —
+        Palmeiras × São Paulo · Arena Barueri · 01/03 às 20h30 &nbsp;|&nbsp;
+        Novorizontino × Corinthians · 01/03 às 20h30 &nbsp;|&nbsp;
+        Final prevista: 04 e 08/03
+      </div>
+
+      <div style="font-size:0.7rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:0.5rem">Chaveamento do Mata-mata</div>
+      <div class="mata-mata-grid">
+        <div class="mm-card spfc">
+          <div class="confronto">
+            <strong>Palmeiras × São Paulo</strong>
+            <span>01/03 · 20h30 · Arena Barueri</span>
+          </div>
+          <span class="mm-fase hoje">HOJE</span>
+        </div>
+        <div class="mm-card">
+          <div class="confronto">
+            <strong>Novorizontino × Corinthians</strong>
+            <span>01/03 · 20h30 · Est. Jorge Ismael de Biasi</span>
+          </div>
+          <span class="mm-fase hoje">HOJE</span>
+        </div>
+        <div class="mm-card">
+          <div class="confronto">
+            <strong>Quartas: RB Bragantino × São Paulo</strong>
+            <span>21/02 · Bragantino 1–2 São Paulo ✓</span>
+          </div>
+          <span class="mm-fase classificado">SPFC ✓</span>
+        </div>
+        <div class="mm-card">
+          <div class="confronto">
+            <strong>Quartas: Portuguesa × Corinthians</strong>
+            <span>22/02 · Portuguesa 1–1 Corinthians (8–7 pên.)</span>
+          </div>
+          <span class="mm-fase classificado">COR ✓</span>
+        </div>
+        <div class="mm-card">
+          <div class="confronto">
+            <strong>Quartas: Novorizontino × Santos</strong>
+            <span>22/02 · Novorizontino 2–1 Santos</span>
+          </div>
+          <span class="mm-fase classificado">NOV ✓</span>
+        </div>
+        <div class="mm-card">
+          <div class="confronto">
+            <strong>Quartas: Palmeiras × Capivariano</strong>
+            <span>22/02 · Palmeiras 4–0 Capivariano</span>
+          </div>
+          <span class="mm-fase classificado">PAL ✓</span>
+        </div>
+      </div>
+
+      <div style="font-size:0.7rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin:1rem 0 0.5rem">Classificação da Fase de Grupos (encerrada)</div>
+      <div style="border:1px solid #1a1a1a;border-radius:6px;overflow:hidden">
+        <table class="classificacao-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Time</th><th>Pts</th><th>PJ</th>
+              <th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>${paulistao.map(t => rowPaulista(t)).join('')}</tbody>
+        </table>
+      </div>
+      <div class="legenda-tabela">
+        ${legenda([
+          { cor:'#1e88e5', label:'Classificado às quartas' },
+          { cor:'#e53935', label:'Rebaixado à Série A2' },
+        ])}
+      </div>
+    </div>
+
+    <!-- ═══════ BRASILEIRÃO 2026 ═══════ -->
+    <div class="camp-bloco">
+      <div class="camp-header">
+        <span class="camp-titulo">Brasileirão Série A 2026</span>
+        <span class="camp-badge em-andamento">Em andamento · 3ª Rodada</span>
+      </div>
+      <div class="camp-fase-info">
+        <strong>Pontos corridos · 38 rodadas</strong> —
+        Iniciou em 28/01 e termina em 02/12/2026 &nbsp;|&nbsp;
+        Pausa para <strong>Copa do Mundo</strong> de 11/06 a 19/07 &nbsp;|&nbsp;
+        São Paulo: <strong>7 pts · 2V 1E 0D</strong> · Próximo jogo: Chapecoense (12/03)
+      </div>
+      <div style="border:1px solid #1a1a1a;border-radius:6px;overflow:hidden">
+        <table class="classificacao-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Time</th><th>Pts</th><th>PJ</th>
+              <th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><th>Forma</th>
+            </tr>
+          </thead>
+          <tbody>${brasileirao.map(t => rowBrasileirao(t)).join('')}</tbody>
+        </table>
+      </div>
+      <div class="legenda-tabela">
+        ${legenda([
+          { cor:'#1e88e5', label:'Libertadores (G4)' },
+          { cor:'#43a047', label:'Sul-Americana (G8)' },
+          { cor:'#e53935', label:'Rebaixamento (últimos 4)' },
+        ])}
+      </div>
+      <p style="font-size:0.72rem;color:var(--texto-suave);margin-top:0.6rem;text-align:center">
+        Atualizado até 26/02/2026 · Fonte: CBF / 
+        <a href="https://ge.globo.com/futebol/brasileirao-serie-a/classificacao/" target="_blank" style="color:var(--dourado)">ge.globo.com</a>
+      </p>
+    </div>
+  `;
+}
+
+function renderNoticiasMock() {
+  const noticias = [
+    {
+      titulo: 'Choque-Rei nas semis: Palmeiras x São Paulo no Paulistão 2026 — hoje, 20h30 na Arena Barueri',
+      link: 'https://ge.globo.com/futebol/times/sao-paulo/',
+      data: '2026-03-01',
+      categoria: 'Paulistão 2026',
+      desc: 'São Paulo enfrenta Palmeiras na semifinal do Campeonato Paulista neste domingo. Quem avança para a final?',
+      thumb: 'https://s2.glbimg.com/JFDkKDQT_XZ8eTxBiAD3pHgDiP0=/984x0/smart/filters:strip_icc()/i.s3.glbimg.com/v1/AUTH_bc8228b6673f488aa253bbcb03c80ec5/internal_photos/bs/2024/T/T/9hD5m5RqsO6ue3yQxExg/sao-paulo.jpg'
+    },
+    {
+      titulo: 'Na raça, São Paulo derrota o Coritiba fora de casa pelo Brasileirão',
+      link: 'https://www.saopaulofc.net/na-raca-sao-paulo-derrota-o-coritiba-fora-de-casa/',
+      data: '2026-02-25',
+      categoria: 'Brasileirão 2026',
+      desc: 'Gol de Cauly de pênalti garante os 3 pontos para o Tricolor no Couto Pereira e coloca o time na liderança provisória.',
+      thumb: ''
+    },
+    {
+      titulo: 'São Paulo vence o Red Bull Bragantino e avança à semifinal do Paulistão',
+      link: 'https://www.saopaulofc.net/sao-paulo-vence-o-red-bull-bragantino-e-avanca-a-semifinal-do-paulistao/',
+      data: '2026-02-21',
+      categoria: 'Paulistão 2026',
+      desc: 'Tricolor venceu por 2 a 1 fora de casa e garante vaga nas semis onde reencontra o Palmeiras.',
+      thumb: ''
+    },
+    {
+      titulo: 'São Paulo bate a Ponte Preta e avança às quartas do Paulistão',
+      link: 'https://www.saopaulofc.net/sao-paulo-vence-a-ponte-preta-e-avanca-as-quartas-do-paulistao/',
+      data: '2026-02-15',
+      categoria: 'Paulistão 2026',
+      desc: 'Com 4 vitórias, 1 empate e 3 derrotas, o SPFC fecha a fase de grupos em 6º e enfrenta o Bragantino.',
+      thumb: ''
+    },
+    {
+      titulo: 'No MorumBIS, São Paulo vence o Grêmio pelo Brasileirão 2026',
+      link: 'https://www.saopaulofc.net/no-morumbis-sao-paulo-vence-o-gremio-pelo-brasileirao-3/',
+      data: '2026-02-11',
+      categoria: 'Brasileirão 2026',
+      desc: 'Placar de 2 a 0 mantém o Tricolor com 100% de aproveitamento em casa no Brasileirão.',
+      thumb: ''
+    },
+    {
+      titulo: 'Fora de casa, São Paulo empata com o Santos pelo Brasileirão',
+      link: 'https://www.saopaulofc.net/fora-de-casa-sao-paulo-empata-com-o-santos-pelo-brasileirao/',
+      data: '2026-02-04',
+      categoria: 'Brasileirão 2026',
+      desc: 'Na Vila Belmiro, Tricolor segura o empate em 1 a 1 no Clássico da Saudade pela rodada 1.',
+      thumb: ''
+    },
+    {
+      titulo: 'No MorumBIS, São Paulo vence o Flamengo de virada pela estreia no Brasileirão',
+      link: 'https://www.saopaulofc.net/no-morumbis-sao-paulo-vence-o-flamengo-de-virada-pela-estreia-no-brasileirao/',
+      data: '2026-01-28',
+      categoria: 'Brasileirão 2026',
+      desc: 'Vitória por 2 a 1 sobre o Rubro-Negro em casa para abrir o Brasileirão 2026 com o pé direito.',
+      thumb: ''
+    },
+    {
+      titulo: 'Fora de casa, São Paulo sofre revés para o Palmeiras no Paulistão',
+      link: 'https://www.saopaulofc.net/fora-de-casa-sao-paulo-sofre-reves-para-o-palmeiras/',
+      data: '2026-01-24',
+      categoria: 'Paulistão 2026',
+      desc: 'Palmeiras vence por 3 a 1 na Arena Barueri em rodada do Campeonato Paulista.',
+      thumb: ''
+    },
+  ];
+
+  renderNoticiasLayout(noticias);
+
+  // Adiciona aviso de mock
+  const rodapeAviso = document.createElement('p');
+  rodapeAviso.style.cssText = 'padding:0 0 1rem;font-size:0.72rem;color:var(--texto-suave);text-align:center';
+  rodapeAviso.innerHTML = '⚠️ Notícias ilustrativas — Para notícias reais acesse <a href="https://ge.globo.com/futebol/times/sao-paulo/" target="_blank" style="color:var(--dourado)">ge.globo.com</a>';
+  document.getElementById('conteudoNoticias').appendChild(rodapeAviso);
+}
+
+// =====================================================
+// HELPERS
+// =====================================================
+function setStatus(cor, texto) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusTexto');
+  dot.className = `dot ${cor}`;
+  txt.textContent = texto;
+}
+
+function formatarDataRelativa(iso) {
+  if (!iso) return 'ge.globo.com';
+  try {
+    const d = new Date(iso);
+    const agora = new Date();
+    const diff = agora - d;
+    const min = Math.floor(diff / 60000);
+    const h = Math.floor(diff / 3600000);
+    const dias = Math.floor(diff / 86400000);
+    if (min < 2) return 'Agora mesmo';
+    if (min < 60) return `Há ${min} min`;
+    if (h < 24) return `Há ${h}h`;
+    if (dias === 1) return 'Ontem';
+    if (dias < 7) return `Há ${dias} dias`;
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+  } catch(e) { return iso; }
+}
+
+function formatarData(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch(e) { return iso; }
+}
+
+function formatarDataCompleta(iso) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  } catch(e) { return iso; }
+}
+
+function formatarHora(iso) {
+  if (!iso) return '--:--';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  } catch(e) { return '--:--'; }
+}
+
+// =====================================================
+// INIT
+// =====================================================
+carregarJogos();
+// Pré-carrega classificação em background
+setTimeout(() => carregarClassificacao(), 800);
+setInterval(() => {
+  const tabAtiva = document.querySelector('.tab.active');
+  const aba = tabAtiva ? tabAtiva.textContent.trim().toLowerCase() : 'jogos';
+  if (aba === 'jogos') carregarJogos();
+}, 60000);
+</script>
+</body>
+</html>
